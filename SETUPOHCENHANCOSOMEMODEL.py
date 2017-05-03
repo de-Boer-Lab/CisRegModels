@@ -101,10 +101,26 @@ if args.initConcs is not None:
 
 if args.noTrainConcs==0:
 	if args.verbose>0: sys.stderr.write("Training concentrations\n")
-	logConcs = tf.Variable(tf.convert_to_tensor(initConcs.reshape((1,1,1,args.numMotifs)))); ###TODO name="concentrations"
+	logConcs = tf.Variable(tf.convert_to_tensor(initConcs.reshape((1,1,1,args.numMotifs)))); ###TODO name="concentrations" #note that these changes will lead to incompatibility
 else:
 	if args.verbose>0: sys.stderr.write("Not training concentrations\n")
 	logConcs = tf.constant(initConcs.reshape((1,1,1,args.numMotifs))); ###TODO name="concentrations"
+
+## binding limits
+if args.bindingLimits:
+	initBL = np.ones(args.numMotifs).astype(np.float32);
+	#input default concentrations if applicable
+	if args.initBindLim is not None:
+		vals = np.loadtxt(args.initBindLim, dtype = np.str);
+		initBL[0:vals.shape[0]] = np.log(vals[:,1].astype("float32"));  #thus they are input as non-log
+
+	if args.noTrainBL==0:
+		if args.verbose>0: sys.stderr.write("Training binding limits\n")
+		logBindingLimits = tf.Variable(tf.convert_to_tensor(initBL.reshape((args.numMotifs))), name="logBindingLimits");  #[numMotifs]
+	else:
+		if args.verbose>0: sys.stderr.write("Not training binding limits\n")
+		logBindingLimits = tf.constant(initBL.reshape((args.numMotifs)), name="logBindingLimits");  #[numMotifs]
+	bindingLimits=tf.exp(logBindingLimits, name="bindingLimits");
 
 #motif layer: conv layer 1
 	#nodes: motifs * orientations * positions
@@ -197,7 +213,9 @@ if args.trainPositionalActivities>0: # account for positional activity with line
 			pBoundPerPos = tf.sub(1.0,tf.mul(pNotBoundTensor, pNotBoundRCTensor)) # size: [None,1,seqLen,numMotifs]
 		#print(tf.Tensor.get_shape(pBoundPerPos))
 		if args.potentiation>0:
-			pBoundPerPos = tf.transpose(tf.mul(tf.transpose(pBoundPerPos, perm=(1,2,3,0)), seqPotentialTensor), perm = (3,0,1,2)) # size: None,1,seqLen,numMotifs]
+			pBoundPerPos = tf.transpose(tf.mul(tf.transpose(pBoundPerPos, perm=(1,2,3,0)), seqPotentialTensor), perm = (3,0,1,2)) # size: [None,1,seqLen,numMotifs]
+		if args.bindingLimits>0:
+			pBoundPerPos = tf.minimum(pBoundPerPos, bindingLimits); #[None,1,seqLen,numMotifs]
 		#print(tf.Tensor.get_shape(pBoundPerPos))
 		#print(tf.Tensor.get_shape(positionalActivity))
 		expectedActivity = tf.matmul(tf.reshape(pBoundPerPos, (-1, args.seqLen*args.numMotifs)), tf.reshape(positionalActivity, (args.seqLen*args.numMotifs,1))) # size: [None,1]
@@ -214,10 +232,14 @@ else: #no positional activities
 			epBoundTensorRC = tf.transpose(tf.mul(tf.transpose(epBoundTensorRC), seqPotentialTensor)); # [None, numMotifs]
 			#print(tf.Tensor.get_shape(epBoundTensor))
 			#print(tf.Tensor.get_shape(epBoundTensorRC))
+		if args.bindingLimits>0:
+			epBoundTensor = tf.minimum(epBoundTensor, bindingLimits); #[None, numMotifs]
 		expectedActivity = tf.add(tf.matmul(epBoundTensor, tf.reshape(activities,(args.numMotifs,1))), tf.matmul(epBoundTensorRC, tf.reshape(activitiesRC,(args.numMotifs,1)))) #[None,1]
 	else: #no positional or strand effects
 		if args.potentiation>0:
 			epBoundTensor = tf.transpose(tf.mul(tf.transpose(epBoundTensor),seqPotentialTensor)); # [None,numMotifs]
+		if args.bindingLimits>0:
+			epBoundTensor = tf.minimum(epBoundTensor, bindingLimits); #[None, numMotifs]
 		expectedActivity = tf.matmul(epBoundTensor, tf.reshape(activities,(args.numMotifs,1))); #size: [None,1]
 
 constant = tf.Variable(tf.zeros(1),name="constant")
@@ -344,6 +366,10 @@ def saveParams(sess):
 		global constantPot;
 		outFile.write("\tpotentiations");
 		potentiationVals = potentiation.eval(session=sess).reshape((args.numMotifs));
+	if args.bindingLimits>0:
+		global bindingLimits
+		outFile.write("\tbindingLimits");
+		bindingLimitVals = bindingLimits.eval(session=sess).reshape((args.numMotifs));
 	if args.trainStrandedActivities>0:
 		global activityDiffs;
 		outFile.write("\tactivityDiffs");
@@ -371,6 +397,8 @@ def saveParams(sess):
 		outFile.write("%i\t%g\t%g"%(i, concs[i], activityVals[i]));#intercepts
 		if args.potentiation>0:
 			outFile.write("\t%g"%(potentiationVals[i]));
+		if args.bindingLimits>0:
+			outFile.write("\t%g"%(bindingLimitVals[i]));
 		if args.trainStrandedActivities>0:
 			outFile.write("\t%g"%(activityDiffVals[i]));
 		if args.trainPositionalActivities>0:
