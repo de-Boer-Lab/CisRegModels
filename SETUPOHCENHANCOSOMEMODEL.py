@@ -386,6 +386,8 @@ def saveParams(sess):
 	outFile.write("-1\tNA\t%g"%constant.eval(session=sess));#intercepts
 	if args.potentiation>0:
 		outFile.write("\t%g"%(constantPot.eval(session=sess)));
+	if args.bindingLimits>0:
+		outFile.write("\tNA");
 	if args.trainStrandedActivities>0:
 		outFile.write("\tNA");
 	if args.trainPositionalActivities>0:
