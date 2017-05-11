@@ -74,7 +74,7 @@ padPFM = function(x, nBefore=0, nAfter = 0){
   return(newPFM);
 }
 
-mergePFMs = function(pfmA, pfmB, offset){
+mergePFMs = function(pfmA, pfmB, offset, useIC=F){
   if (offset > 0){
     pfmA = padPFM(pfmA, nBefore=offset)
   }else if (offset < 0){
@@ -85,11 +85,20 @@ mergePFMs = function(pfmA, pfmB, offset){
   }else if (nrow(pfmA) < nrow(pfmB)){
     pfmA = padPFM(pfmA, nAfter=nrow(pfmB) - nrow(pfmA))
   }
-  for (i in 1:nrow(pfmA)){
-    pfmA$A[i] = (pfmA$A[i] + pfmB$A[i])/2;
-    pfmA$C[i] = (pfmA$C[i] + pfmB$C[i])/2;
-    pfmA$G[i] = (pfmA$G[i] + pfmB$G[i])/2;
-    pfmA$T[i] = (pfmA$T[i] + pfmB$T[i])/2;
+  if(useIC){
+      for (i in 1:nrow(pfmA)){
+      pfmA$A[i] = (pfmA$A[i]*pfmA$IC[i] + pfmB$A[i]*pfmB$IC[i])/ (pfmA$IC[i] + pfmB$IC[i]);
+      pfmA$C[i] = (pfmA$C[i]*pfmA$IC[i] + pfmB$C[i]*pfmB$IC[i])/ (pfmA$IC[i] + pfmB$IC[i]);
+      pfmA$G[i] = (pfmA$G[i]*pfmA$IC[i] + pfmB$G[i]*pfmB$IC[i])/ (pfmA$IC[i] + pfmB$IC[i]);
+      pfmA$T[i] = (pfmA$T[i]*pfmA$IC[i] + pfmB$T[i]*pfmB$IC[i])/ (pfmA$IC[i] + pfmB$IC[i]);
+    }
+  }else{
+    for (i in 1:nrow(pfmA)){
+      pfmA$A[i] = (pfmA$A[i] + pfmB$A[i])/2;
+      pfmA$C[i] = (pfmA$C[i] + pfmB$C[i])/2;
+      pfmA$G[i] = (pfmA$G[i] + pfmB$G[i])/2;
+      pfmA$T[i] = (pfmA$T[i] + pfmB$T[i])/2;
+    }
   }
   pfmA$pos = 1:nrow(pfmA);
   return(pfmA);
