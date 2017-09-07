@@ -1,4 +1,7 @@
 
+if args.accIsAct>0 and args.potentiation==0:
+	raise Exception("Cannot include accessibility influence on EL without including potentiation layer!")
+
 if not hasattr(args, 'L2'):
 	args.L2=0.001;
 if not hasattr(args, 'L1'):
@@ -244,7 +247,12 @@ else: #no positional activities
 
 constant = tf.Variable(tf.zeros(1),name="constant")
 
-predELY= tf.add(tf.reshape(expectedActivity, [-1]),constant) #size: [None]
+if args.accIsAct>0:
+	accActivity = tf.Variable(tf.zeros(1),name="accessActiv")
+	accActivELTensor = tf.mul(seqPotentialTensor, accActivity) # [None,1]
+	predELY= tf.add(tf.add(tf.reshape(expectedActivity, [-1]),tf.reshape(accActivELTensor, [-1])), constant) #size: [None]
+else:
+	predELY= tf.add(tf.reshape(expectedActivity, [-1]),constant) #size: [None]
 realELY = tf.placeholder(tf.float32, [None]);
 
 EPSILON=0.0001
@@ -288,6 +296,9 @@ if args.L1 is not None:
 		if args.trainStrandedActivities>0:
 			paramPenaltyL1Tensor = paramPenaltyL1Tensor + tf.reduce_sum(tf.abs(activitySlopesDiff))
 			paramNumActivityTensor = paramNumActivityTensor +tf.reduce_sum(tf.cast(tf.greater(tf.abs(activitySlopesDiff),EPSILON),tf.int32))
+	if args.accIsAct>0:
+		paramPenaltyL1Tensor = paramPenaltyL1Tensor + tf.abs(accActivity)
+		paramNumActivityTensor = paramNumActivityTensor +tf.reduce_sum(tf.cast(tf.greater(tf.abs(accActivity),EPSILON),tf.int32))
 	myLoss = tf.add(myLoss, tf.mul(paramPenaltyL1Tensor,args.L1));
 
 if args.interactions>0:
@@ -383,7 +394,11 @@ def saveParams(sess):
 			outFile.write("\tactivitySlopeDiffs");
 			activitySlopeDiffVals = activitySlopesDiff.eval(session=sess).reshape((args.numMotifs));
 	outFile.write("\n");
-	outFile.write("-1\tNA\t%g"%constant.eval(session=sess));#intercepts
+	if args.accIsAct>0:
+		global accActivity #hide this as the concentration constant since this is unused otherwise
+		outFile.write("-1\t%g\t%g"%(accActivity.eval(session=sess),constant.eval(session=sess)));#intercepts
+	else:
+		outFile.write("-1\tNA\t%g"%constant.eval(session=sess));#intercepts
 	if args.potentiation>0:
 		outFile.write("\t%g"%(constantPot.eval(session=sess)));
 	if args.bindingLimits>0:

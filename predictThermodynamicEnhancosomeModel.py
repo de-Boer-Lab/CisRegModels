@@ -17,6 +17,7 @@ parser.add_argument('-eb',dest='useEBound', action='count',help='use expected bi
 parser.add_argument('-bl',dest='bindingLimits', action='count',help='Include a maximum binding parameter?', required=False, default=0);
 parser.add_argument('-ibl',dest='initBindLim', metavar='<initBindLim>',help='Initialize binding limits to these [defaults to 1]', required=False);
 parser.add_argument('-po',dest='potentiation', action='count',help='add a layer of potentiation, modulating accessibility?', required=False, default=0);
+parser.add_argument('-aisa',dest='accIsAct', action='count',help='Include a constant relating openness directly to activity (output as concetration constant)', required=False, default=0);
 parser.add_argument('-tftf',dest='interactions', metavar='<windowSize>',help='Add a layer of interaction filters to scale Kds based on nearby Kds within this window [default = do not use interaction terms]', required=False, default=0);
 parser.add_argument('-posa',dest='trainPositionalActivities',action='count',help='Train slopes capturing a linear positional dependence? [default=no]. Note that this necessarily makes the model an EBound model after the potentiation step', required=False, default=0);
 parser.add_argument('-stra',dest='trainStrandedActivities',action='count',help='Train activities capturing strand-specific differences in activity? [default=no]', required=False, default=0);
@@ -58,8 +59,12 @@ else:
 	outFile = sys.stdout;
 
 
-with open('/home/unix/cgdeboer/lib/python/SETUPOHCENHANCOSOMEMODEL.py') as fd:
-	exec(fd.read())
+if tf.__version__=='1.2.1':
+	with open('/home/unix/cgdeboer/lib/python/SETUPOHCENHANCOSOMEMODEL.tf.1.2.1.py') as fd:
+		exec(fd.read())
+else:
+	with open('/home/unix/cgdeboer/lib/python/SETUPOHCENHANCOSOMEMODEL.py') as fd:
+		exec(fd.read())
 
 
 outFile.write("actual\tpredicted");

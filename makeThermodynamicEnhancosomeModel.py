@@ -6,6 +6,7 @@ parser = argparse.ArgumentParser(description='Creates a biochemical transcriptio
 parser.add_argument('-i',dest='inFP',	metavar='<inFile>',help='Input file of one-hot-code sequences, preceeded by their expression value, tab delim', required=True);
 parser.add_argument('-sl',dest='seqLen',	metavar='<seqLen>',help='Input sequence length in bp', required=True);
 parser.add_argument('-b',dest='batch',	metavar='<batchSize>',help='Batch size to use to feed into the neural net [default = 1000] ', required=False, default = "1000");
+parser.add_argument('-raw',dest='runningAverageWindow',	metavar='<runningAverageWindow>',help='Window to use when reporting the running average MSE per batch [default = 100] ', required=False, default = "100");
 parser.add_argument('-se',dest='saveEvery',	metavar='<saveEvery>',help='save neural net every X batches [default = 500] ', required=False, default = "500");
 parser.add_argument('-res',dest='restore',	metavar='<restoreFromCkptFile>',help='Restore NN from file ', required=False);
 parser.add_argument('-lpb',dest='learnsPerBatch',	metavar='<learnsPerBatch>',help='How many learning steps do we take at each batch [default = 1000] ', required=False, default = "1000");
@@ -20,8 +21,9 @@ parser.add_argument('-eb',dest='useEBound', action='count',help='use expected bi
 parser.add_argument('-bl',dest='bindingLimits', action='count',help='Include a maximum binding parameter?', required=False, default=0);
 parser.add_argument('-ibl',dest='initBindLim', metavar='<initBindLim>',help='Initialize binding limits to these [defaults to 1]', required=False);
 parser.add_argument('-po',dest='potentiation', action='count',help='add a layer of potentiation, modulating accessibility?', required=False, default=0);
+parser.add_argument('-aisa',dest='accIsAct', action='count',help='Include a constant relating openness directly to activity (output as concetration constant)', required=False, default=0);
 parser.add_argument('-tftf',dest='interactions', metavar='<windowSize>',help='Add a layer of interaction filters to scale Kds based on nearby Kds within this window [default = do not use interaction terms]', required=False, default=0);
-parser.add_argument('-posa',dest='trainPositionalActivities',action='count',help='Train slopes capturing a linear positional dependence? [default=no]. Note that this necessarily makes the model an EBound model after the potentiation step', required=False, default=0);
+parser.add_argument('-posa',dest='trainPositionalActivities',action='count',help='Train position specific activity scales (where 1 is no scaling, 0 scales activity to no effect, and -1 flips the sign of the activity? [default=no]. Note that this necessarily makes the model an EBound model after the potentiation step', required=False, default=0);
 parser.add_argument('-stra',dest='trainStrandedActivities',action='count',help='Train activities capturing strand-specific differences in activity? [default=no]', required=False, default=0);
 parser.add_argument('-ntc',dest='noTrainConcs', action='count',help='make TF concentrations constant (i.e. whatever concentrations are input)?', required=False, default=0);
 parser.add_argument('-nta',dest='noTrainActivities', action='count',help='make TF activities constant (i.e. whatever activities are input)?', required=False, default=0);
@@ -33,6 +35,7 @@ parser.add_argument('-lr',dest='learningRate',	metavar='<learningRate>',help='th
 parser.add_argument('-l1',dest='L1',	metavar='<l1Penalty>',help='L1-regularization parameter for the activities and potentiations (good values are ~0.00001 [default=no regularization]', required=False);
 parser.add_argument('-l1int',dest='L1int',	metavar='<l1PenaltyForInteractions>',help='L1-regularization parameter for the TF-TF interaction terms [default=0.00001]', required=False, default="0.00001");
 parser.add_argument('-l2',dest='L2',	metavar='<l2Penalty>',help='L2-regularization parameter for the PWMs (good values are ~0.000001) [default=no regularization]', required=False);
+parser.add_argument('-l2Pos',dest='L2Pos',	metavar='<l2PenaltyForPositionalActivity>',help='L2-regularization parameter for differences in adjacent positional activities of TFs (good values are ~0.00001) [default=no regularization]', required=False);
 parser.add_argument('-t',dest='threads',	metavar='<threads>',help='Number of threads to make use of [default=1]',default = "1", required=False);
 parser.add_argument('-o',dest='outFPre', metavar='<outFilePrefix>',help='Where to output results - prefix [default=stdout]', required=False);
 parser.add_argument('-l',dest='logFP', metavar='<logFile>',help='Where to output errors/warnings [default=stderr]', required=False);
@@ -55,22 +58,27 @@ args.learningRate = float(args.learningRate);
 args.threads = int(args.threads);
 args.interactions = int(args.interactions);
 args.L1int = float(args.L1int);
-
+args.runningAverageWindow = int(args.runningAverageWindow);
 if (args.logFP is not None):
 	logFile=MYUTILS.smartGZOpen(args.logFP,'w');
 	sys.stderr=logFile;
 
 if (args.outFPre is not None):
 	if args.verbose>0: sys.stderr.write("Outputting to file "+args.outFPre+"*\n");
-
-with open('/home/unix/cgdeboer/lib/python/SETUPOHCENHANCOSOMEMODEL.py') as fd:
-	exec(fd.read())
+if tf.__version__=='1.2.1':
+	with open('/home/unix/cgdeboer/lib/python/SETUPOHCENHANCOSOMEMODEL.tf.1.2.1.py') as fd:
+		exec(fd.read())
+else:
+	with open('/home/unix/cgdeboer/lib/python/SETUPOHCENHANCOSOMEMODEL.py') as fd:
+		exec(fd.read())
 
 saveParams(sess)
 trainingSteps=0;
 b = 0
 batchX = np.zeros((args.batch,4,args.seqLen,1))
 batchY = np.zeros((args.batch))
+runningMeanMSE = np.zeros(args.runningAverageWindow);#init to nans
+runningMeanMSE.fill(np.nan)
 for r in range(0, int(args.runs)):
 	if args.verbose>1:
 		sys.stderr.write("	Run %i...\n"%(r));
@@ -87,16 +95,19 @@ for r in range(0, int(args.runs)):
 			#train with current data
 			for j in range(0,args.learnsPerBatch):
 				sess.run(train_step, feed_dict={ohcX: batchX, realELY: batchY})
+				curMSE = mseTF.eval(session=sess, feed_dict={ohcX: batchX, realELY: batchY});
+				runningMeanMSE[trainingSteps % args.runningAverageWindow]=curMSE;
+				runningMSE = np.nanmean(runningMeanMSE);
 				if args.verbose>3: 
 					if args.L1 is not None:
-						sys.stderr.write("			cur train MSE = %f;\tloss = %f;\tmodel paramsum = %f;\tparamsnum = %i\n"%(mseTF.eval(session=sess, feed_dict={ohcX: batchX, realELY: batchY}),myLoss.eval(session=sess, feed_dict={ohcX: batchX, realELY: batchY}),paramPenaltyL1Tensor.eval(session=sess), paramNumActivityTensor.eval(session=sess)));
+						sys.stderr.write("			running MSE = %f;	cur train MSE = %f;\tloss = %f;\tmodel paramsum = %f;\tparamsnum = %i\n"%(runningMSE,curMSE,myLoss.eval(session=sess, feed_dict={ohcX: batchX, realELY: batchY}),paramPenaltyL1Tensor.eval(session=sess), paramNumActivityTensor.eval(session=sess)));
 					else:
-						sys.stderr.write("			cur train MSE = %f\n"%(mseTF.eval(session=sess, feed_dict={ohcX: batchX, realELY: batchY})));
+						sys.stderr.write("			running MSE = %f;	cur train MSE = %f\n"%(runningMSE,curMSE));
 			if args.verbose>2: 
 				if args.L1 is not None:
-					sys.stderr.write("		cur batch MSE = %f;\tloss = %f;\tmodel paramsum = %f;\tparamsnum = %i\n"%(mseTF.eval(session=sess, feed_dict={ohcX: batchX, realELY: batchY}),myLoss.eval(session=sess, feed_dict={ohcX: batchX, realELY: batchY}),paramPenaltyL1Tensor.eval(session=sess), paramNumActivityTensor.eval(session=sess)));
+					sys.stderr.write("		running MSE = %f;	cur batch MSE = %f;\tloss = %f;\tmodel paramsum = %f;\tparamsnum = %i\n"%(runningMSE,curMSE,myLoss.eval(session=sess, feed_dict={ohcX: batchX, realELY: batchY}),paramPenaltyL1Tensor.eval(session=sess), paramNumActivityTensor.eval(session=sess)));
 				else:
-					sys.stderr.write("		cur batch MSE = %f\n"%(mseTF.eval(session=sess, feed_dict={ohcX: batchX, realELY: batchY})));
+					sys.stderr.write("		running MSE = %f;	cur batch MSE = %f\n"%(runningMSE,curMSE));
 			b=0;
 			trainingSteps+=1;
 			if trainingSteps % args.saveEvery==0:
@@ -109,9 +120,9 @@ for r in range(0, int(args.runs)):
 		data=line.rstrip().split("\t");
 	if args.verbose>1: 
 		if args.L1 is not None:
-			sys.stderr.write("	cur run MSE = %f;\tloss = %f;\tmodel paramsum = %f;\tparamsnum = %i\n"%(mseTF.eval(session=sess, feed_dict={ohcX: batchX, realELY: batchY}),myLoss.eval(session=sess, feed_dict={ohcX: batchX, realELY: batchY}),paramPenaltyL1Tensor.eval(session=sess),paramNumActivityTensor.eval(session=sess)));
+			sys.stderr.write("	runningMSE = %f;\t last MSE = %f;\tloss = %f;\tmodel paramsum = %f;\tparamsnum = %i\n"%(runningMSE, curMSE, myLoss.eval(session=sess, feed_dict={ohcX: batchX, realELY: batchY}),paramPenaltyL1Tensor.eval(session=sess),paramNumActivityTensor.eval(session=sess)));
 		else:
-			sys.stderr.write("	cur run MSE = %f\n"%(mseTF.eval(session=sess, feed_dict={ohcX: batchX, realELY: batchY})));
+			sys.stderr.write("	running MSE = %f;\t last  MSE = %f\n"%(runningMSE, curMSE));
 	inFile.close();
 
 
