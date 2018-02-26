@@ -1,3 +1,3 @@
 
 from CisRegModels import TFHELP;
-from CisRegModels import SETUPOHCENHANCOSOMEMODEL;;
+from CisRegModels import SETUPOHCENHANCOSOMEMODEL;
