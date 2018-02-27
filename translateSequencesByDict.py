@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import warnings
-import CisRegModels.MYUTILS
+from CisRegModels import MYUTILS
 import sys
 import argparse
 parser = argparse.ArgumentParser(description='Translates the contents of a file from one thing to another using a dictionary.')

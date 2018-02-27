@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import warnings
-import CisRegModels.MYUTILS
+from CisRegModels import MYUTILS
 from CisRegModels.DNA import *
 import sys
 import argparse

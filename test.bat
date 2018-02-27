@@ -4,7 +4,6 @@ echo "############################################"
 echo "Creating One-Hot representation of sequences"
 echo "############################################"
 seqsToOHC.py -i example/HighQuality.pTpA.Glu.test.txt.gz -m 110 -o example/HighQuality.pTpA.Glu.test.OHC.gz
-
 echo "############################################"
 echo "learning model from known motifs, holding concentrations and motifs static"
 echo "############################################"
@@ -31,3 +30,4 @@ echo "testing ACPM  model on training data and outputing predicted binding"
 echo "############################################"
 predictThermodynamicEnhancosomeModel.py -i example/HighQuality.pTpA.Glu.test.OHC.gz -sl 110 -b 128 -M ./example/test.model.APCM.Model -o example/test.model.APCM.pred.gz -ob
 echo "See example/test.model.APCM.pos.pred.gz for predictions"
+echo "ALL COMMANDS SUCCEEDED"

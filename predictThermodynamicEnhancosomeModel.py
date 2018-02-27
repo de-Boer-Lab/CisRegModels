@@ -37,8 +37,8 @@ parser.add_argument('-v',dest='verbose', action='count',help='Verbose output?', 
 #sys.argv = "predictThermodynamicEnhancosomeModel.py -i 20161024_average_promoter_ELs_per_seq_3p1E7_Gly_ALL.shuffled_OHC_test.txt.gz -res EBound_progressive_learning_pTpA_Gly.A.ckpt -o test.txt -v -v -v -t 1 -b 1024 -sl 110 -nm 245 -ml 25 -ntm -ntc".split();
 #sys.argv = "predictThermodynamicEnhancosomeModel.py -i ../../../20160525_NextSeq_pTpA_and_Abf1TATA/analysis/tensorflow/20160503_average_promoter_ELs_per_seq_atLeast100Counts.OHC.txt.gz -res EBound_progressive_learning_pTpA_Gly.A.ckpt -o test.txt -v -v -v -t 1 -b 1024 -sl 110 -nm 245 -ntc -ntm -ic /home/unix/cgdeboer/CIS-BP/YeTFaSCo/allTF_minKds_polyA_and_FZF1_justKds.txt".split();
 args = parser.parse_args();
-import CisRegModels.MYUTILS
-import CisRegModels.PWM;
+from CisRegModelsimport MYUTILS
+from CisRegModels import PWM;
 import tensorflow as tf
 import numpy as np;
 

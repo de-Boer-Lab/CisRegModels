@@ -59,8 +59,8 @@ if args.trace >0:
 	os.environ['LD_LIBRARY_PATH'] = "/usr/local/cuda/extras/CUPTI/lib64/:"+os.environ['LD_LIBRARY_PATH']
 	sys.stderr.write("LD_LIBRARY_PATH = %s\n" % os.environ['LD_LIBRARY_PATH'])
 
-import CisRegModels.MYUTILS
-import CisRegModels.PWM;
+from CisRegModels import MYUTILS
+from CisRegModels import PWM;
 import CisRegModels;
 import tensorflow as tf
 import numpy as np;
