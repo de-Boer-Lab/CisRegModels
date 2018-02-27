@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import warnings
-import MYUTILS
+import CisRegModels.MYUTILS
 import sys
 import argparse
 parser = argparse.ArgumentParser(description='Converts a set of sequences into a one-hot-code (binary) representation - excludes non [ATGC] chars.  Output in ACGT order, one line per sequence, base then position.')

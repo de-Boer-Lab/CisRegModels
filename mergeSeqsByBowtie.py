@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import warnings
-import MYUTILS
-import MYMATH
+import CisRegModels.MYUTILS
+import CisRegModels.MYMATH
 import numpy as np
 import subprocess
 import sys

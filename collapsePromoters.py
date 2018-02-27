@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import warnings
-import MYUTILS
+import CisRegModels.MYUTILS
 import sys
 import argparse
 parser = argparse.ArgumentParser(description='Takes a file containing many promoter sequences and counts them, outputting them in decreasing order of abundance.')

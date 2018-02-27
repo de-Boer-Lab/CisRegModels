@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#import MYUTILS import PWM; import TFHELP;
 from setuptools import setup
 from setuptools import find_packages
 setup(

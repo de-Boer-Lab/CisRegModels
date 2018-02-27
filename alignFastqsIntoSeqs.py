@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import warnings
-import MYUTILS
-from DNA import *
+import CisRegModels.MYUTILS
+from CisRegModels.DNA import *
 import sys
 import argparse
 parser = argparse.ArgumentParser(description='Takes two fastq files for convergent reads and aligns them into one sequence in the strandedness of read1.')

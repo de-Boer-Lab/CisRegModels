@@ -59,9 +59,9 @@ if args.trace >0:
 	os.environ['LD_LIBRARY_PATH'] = "/usr/local/cuda/extras/CUPTI/lib64/:"+os.environ['LD_LIBRARY_PATH']
 	sys.stderr.write("LD_LIBRARY_PATH = %s\n" % os.environ['LD_LIBRARY_PATH'])
 
-import MYUTILS
-import PWM;
-import TFHELP;
+import CisRegModels.MYUTILS
+import CisRegModels.PWM;
+import CisRegModels;
 import tensorflow as tf
 import numpy as np;
 from datetime import datetime
@@ -85,7 +85,6 @@ args.runningAverageWindow = int(args.runningAverageWindow);
 args.rmsDecay = float(args.rmsDecay);
 args.rmsEpsilon = float(args.rmsEpsilon);
 
-import SETUPOHCENHANCOSOMEMODEL;
-myModel = SETUPOHCENHANCOSOMEMODEL.CRM(args);
+myModel = CisRegModels.SETUPOHCENHANCOSOMEMODEL.CRM(args);
 myModel.makeModel();
 
