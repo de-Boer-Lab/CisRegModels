@@ -36,5 +36,5 @@ Here, specific examples come from the [test.bat](https://github.com/Carldeboer/C
 4. Optimizers: Included are three optimizers: Adam, RMSProp, and Momentum.  So far I have had the most success with Adam, but combining the others with cyclical learning rates and/or exponential decay of learning rates might yield better results in some circumstances.
 
 # Citation
-Please cite: [de Boer CG, Sadeh R, Friedman N, and Regev A. Deciphering cis-regulatory logic with 100 million synthetic promoters. doi: https://doi.org/10.1101/224907](https://www.biorxiv.org/content/early/2017/11/25/224907)
+Please cite: [de Boer CG, Vaishnav ED, Sadeh R, Abeyta EL, Friedman N, and Regev A. Deciphering gene-regulatory logic with 100 million synthetic promoters. Nature Biotechnology. 38, pages56–65(2020).](https://www.nature.com/articles/s41587-019-0315-8)
 
