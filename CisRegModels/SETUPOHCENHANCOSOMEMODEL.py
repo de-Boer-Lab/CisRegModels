@@ -1,6 +1,6 @@
-import MYUTILS
-import PWM;
-import TFHELP;
+from CisRegModels import MYUTILS
+from CisRegModels import PWM;
+from CisRegModels import TFHELP;
 import tensorflow as tf
 import numpy as np;
 from datetime import datetime
