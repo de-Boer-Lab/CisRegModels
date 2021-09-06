@@ -20,6 +20,7 @@ This module requires tensorflow (ideally with GPU support since execution time i
 2. Move into the main directory
 
 `cd CisRegModels`
+
 3. Run the test.
 
 `./test.bat`
