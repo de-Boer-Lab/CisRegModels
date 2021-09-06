@@ -16,6 +16,7 @@ This module requires tensorflow (ideally with GPU support since execution time i
 1. Clone the git repo somewhere:
 
 `git clone https://github.com/Carldeboer/CisRegModels`
+
 2. Move into the main directory
 
 `cd CisRegModels`
