@@ -411,6 +411,8 @@ class CRM:
 		
 		logKdConcRatioTensor = tf.subtract(self.logConcs,motifScanTensor) # [None, 1, seqLen,numMotifs] 
 		logKdConcRatioRCTensor = tf.subtract(self.logConcs,motifScanRCTensor) # [None, 1, seqLen,numMotifs] 
+		# BUG: the below two lines should technically use 2^x instead of tf.exp (which uses e) since the PKdMs are log base 2
+		# but this does not affect the ability of the model to learn because the difference in base can be absorbed by the parameters of the PKdM and concentration
 		pNotBoundTensor1 = tf.div(1.0,tf.add(1.0,tf.exp(logKdConcRatioTensor))); # size: [None,1,seqLen,numMotifs]
 		pNotBoundRCTensor1 = tf.div(1.0,tf.add(1.0,tf.exp(logKdConcRatioRCTensor))); # size: [None,1,seqLen,numMotifs]
 		pNotBoundTensor = pNotBoundTensor1;
